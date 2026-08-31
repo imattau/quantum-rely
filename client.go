@@ -155,9 +155,9 @@ func (c *client) read() {
 			return
 		}
 
-		if messageType != ws.TextMessage {
+		if messageType != ws.TextMessage && messageType != ws.BinaryMessage {
 			c.invalidMessages++
-			c.send(noticeResponse{Message: fmt.Sprintf("%v: received binary message", ErrGeneric)})
+			c.send(noticeResponse{Message: fmt.Sprintf("%v: received unsupported message type", ErrGeneric)})
 			continue
 		}
 
