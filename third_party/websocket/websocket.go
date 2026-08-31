@@ -81,6 +81,13 @@ func (c *Conn) ReadMessage() (int, []byte, error) {
 
 		switch opcode {
 		case PingMessage:
+			// RFC 6455 5.5.2: a received Ping must be answered with a Pong
+			// carrying the same payload.
+			if err := c.WriteMessage(PongMessage, payload); err != nil {
+				return 0, nil, err
+			}
+			continue
+		case PongMessage:
 			if c.pongHandler != nil {
 				_ = c.pongHandler(string(payload))
 			}
