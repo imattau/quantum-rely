@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -192,7 +193,7 @@ func main() {
 		return store.Query(filters), nil
 	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	done := ctx.Done()
@@ -229,6 +230,7 @@ func main() {
 		log.Printf("peer endpoint stopped: %v", err)
 		os.Exit(1)
 	}
+	log.Println("quantum relay stopped")
 }
 
 func configFilePath() string {
