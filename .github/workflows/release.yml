@@ -17,8 +17,17 @@ jobs:
         include:
           - goos: linux
             goarch: amd64
+            suffix: amd64
           - goos: linux
             goarch: arm64
+            suffix: arm64
+          # armhf (armv6, hard-float): broadest Raspberry Pi coverage,
+          # covering Pi Zero/1/2 and 32-bit installs of Pi 3/4. This is
+          # the debian/YunoHost architecture name for 32-bit ARM.
+          - goos: linux
+            goarch: arm
+            goarm: "6"
+            suffix: armhf
     steps:
       - uses: actions/checkout@v4
 
@@ -30,16 +39,17 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
           CGO_ENABLED: 0
         run: |
           mkdir -p dist
-          out="dist/quantum-relay-${{ matrix.goos }}-${{ matrix.goarch }}"
+          out="dist/quantum-relay-${{ matrix.goos }}-${{ matrix.suffix }}"
           go build -trimpath -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o "$out" ./cmd/quantum-relay
           sha256sum "$out" > "$out.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: quantum-relay-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: quantum-relay-${{ matrix.goos }}-${{ matrix.suffix }}
           path: dist/*
           if-no-files-found: error
 
