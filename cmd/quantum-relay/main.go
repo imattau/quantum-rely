@@ -73,7 +73,15 @@ func defaultConfig() *Config {
 	}
 }
 
+// version is set via -ldflags "-X main.version=..." at release build time.
+var version = "dev"
+
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "-version" || os.Args[1] == "--version") {
+		fmt.Println("quantum-relay " + version)
+		return
+	}
+
 	cfg, err := LoadConfig(configFilePath())
 	if err != nil {
 		log.Printf("config load failed, using defaults: %v", err)
