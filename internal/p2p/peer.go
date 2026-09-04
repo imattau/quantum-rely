@@ -125,8 +125,10 @@ func (pm *PeerManager) Broadcast(msgType string, payload interface{}) {
 		log.Printf("p2p: broadcasting note_announce to %d peers", len(pm.peers))
 	}
 	for _, p := range pm.peers {
+		msg := make([]byte, len(env))
+		copy(msg, env)
 		select {
-		case p.send <- env:
+		case p.send <- msg:
 		default:
 			log.Printf("p2p: send buffer full peer=%s", p.url)
 		}
@@ -145,8 +147,10 @@ func (pm *PeerManager) BroadcastToTrusted(msgType string, payload interface{}) {
 	for _, p := range pm.peers {
 		if weight, ok := pm.trustWeights[p.url]; ok {
 			if weight > 1.0 {
+				msg := make([]byte, len(env))
+				copy(msg, env)
 				select {
-				case p.send <- env:
+				case p.send <- msg:
 				default:
 					log.Printf("p2p: send buffer full peer=%s", p.url)
 				}

@@ -323,17 +323,15 @@ func (c *Conn) writeFrame(messageType int, payload []byte) error {
 		var key [4]byte
 		rand.Read(key[:])
 		b.Write(key[:])
+		masked := make([]byte, len(payload))
 		for i := range payload {
-			payload[i] ^= key[i%4]
+			masked[i] = payload[i] ^ key[i%4]
 		}
-		defer func() {
-			for i := range payload {
-				payload[i] ^= key[i%4]
-			}
-		}()
+		b.Write(masked)
+	} else {
+		b.Write(payload)
 	}
 
-	b.Write(payload)
 	_, err := c.writer.Write(b.Bytes())
 	if err != nil {
 		return err
