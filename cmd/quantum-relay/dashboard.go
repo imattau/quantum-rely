@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -250,7 +251,14 @@ func requestOrigin(req *http.Request) string {
 	if req.TLS != nil {
 		scheme = "https"
 	}
-	return scheme + "://" + req.Host
+	if forwarded := strings.ToLower(strings.TrimSpace(strings.Split(req.Header.Get("X-Forwarded-Proto"), ",")[0])); forwarded == "http" || forwarded == "https" {
+		scheme = forwarded
+	}
+	host := strings.TrimSpace(strings.Split(req.Header.Get("X-Forwarded-Host"), ",")[0])
+	if host == "" {
+		host = req.Host
+	}
+	return scheme + "://" + host
 }
 
 func writeJSON(w http.ResponseWriter, code int, value any) {

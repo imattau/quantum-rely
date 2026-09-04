@@ -38,3 +38,13 @@ func TestDashboardServesShell(t *testing.T) {
 		t.Fatalf("dashboard response = %d with %d bytes", recorder.Code, recorder.Body.Len())
 	}
 }
+
+func TestRequestOriginUsesForwardedPublicURL(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/mesh/auth", nil)
+	req.Host = "127.0.0.1:8080"
+	req.Header.Set("X-Forwarded-Proto", "https")
+	req.Header.Set("X-Forwarded-Host", "qr.example.com")
+	if got, want := requestOrigin(req), "https://qr.example.com"; got != want {
+		t.Fatalf("request origin = %q, want %q", got, want)
+	}
+}
