@@ -24,6 +24,9 @@ storage:
 
 auth:
   required: false
+  # Optional. When set, only these Nostr pubkeys may publish events. Values
+  # may be npub1... strings or 64-character hex pubkeys.
+  allowed_pubkeys: []
 
 peers:
   - "ws://relay1.example.com:8081"

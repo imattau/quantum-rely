@@ -63,7 +63,8 @@ type TrustConfig struct {
 }
 
 type AuthConfig struct {
-	Required bool `yaml:"required"`
+	Required       bool     `yaml:"required"`
+	AllowedPubkeys []string `yaml:"allowed_pubkeys"`
 }
 
 func LoadConfig(path string) (*Config, error) {
@@ -76,6 +77,9 @@ func LoadConfig(path string) (*Config, error) {
 	if err := parseConfig(string(data), cfg); err != nil {
 		return nil, err
 	}
+	if err := normalizeAllowedPubkeys(&cfg.Auth); err != nil {
+		return nil, err
+	}
 	return cfg, nil
 }
 
@@ -83,6 +87,7 @@ func parseConfig(content string, cfg *Config) error {
 	section := ""
 	inPeers := false
 	inTrustPeers := false
+	inAllowedPubkeys := false
 
 	lines := strings.Split(content, "\n")
 	for _, raw := range lines {
@@ -95,11 +100,16 @@ func parseConfig(content string, cfg *Config) error {
 			inTrustPeers = true
 			continue
 		}
+		if section == "auth" && line == "allowed_pubkeys:" {
+			inAllowedPubkeys = true
+			continue
+		}
 
 		if strings.HasSuffix(line, ":") && !strings.Contains(line, " ") {
 			section = strings.TrimSuffix(line, ":")
 			inPeers = section == "peers"
 			inTrustPeers = false
+			inAllowedPubkeys = false
 			continue
 		}
 
@@ -119,6 +129,14 @@ func parseConfig(content string, cfg *Config) error {
 			case inTrustPeers && strings.HasPrefix(line, "-"):
 				item := strings.TrimSpace(strings.TrimPrefix(line, "-"))
 				cfg.Trust.Peers = append(cfg.Trust.Peers, trimQuotes(item))
+				continue
+			}
+		}
+
+		if section == "auth" && inAllowedPubkeys {
+			if strings.HasPrefix(line, "-") {
+				item := strings.TrimSpace(strings.TrimPrefix(line, "-"))
+				cfg.Auth.AllowedPubkeys = append(cfg.Auth.AllowedPubkeys, trimQuotes(item))
 				continue
 			}
 		}

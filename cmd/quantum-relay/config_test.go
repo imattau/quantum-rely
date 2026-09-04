@@ -116,6 +116,37 @@ auth:
 	}
 }
 
+func TestConfigAllowedPubkeys(t *testing.T) {
+	input := `
+auth:
+  required: false
+  allowed_pubkeys:
+    - "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    - "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+`
+	cfg := defaultConfig()
+	if err := parseConfig(input, cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := normalizeAllowedPubkeys(&cfg.Auth); err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Auth.Required {
+		t.Fatal("an allowlist should require authentication")
+	}
+	if len(cfg.Auth.AllowedPubkeys) != 1 {
+		t.Fatalf("expected one deduplicated pubkey, got %d", len(cfg.Auth.AllowedPubkeys))
+	}
+}
+
+func TestConfigAllowedPubkeysRejectsInvalidKey(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Auth.AllowedPubkeys = []string{"not-a-pubkey"}
+	if err := normalizeAllowedPubkeys(&cfg.Auth); err == nil {
+		t.Fatal("expected invalid pubkey to be rejected")
+	}
+}
+
 func TestConfigAuthRequiredDefault(t *testing.T) {
 	cfg := defaultConfig()
 	if cfg.Auth.Required {

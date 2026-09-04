@@ -159,6 +159,9 @@ func main() {
 		if cfg.Auth.Required && !c.IsAuthed() {
 			return fmt.Errorf("auth-required: authentication needed to publish events")
 		}
+		if !authorizedEvent(c.Pubkeys(), cfg.Auth.AllowedPubkeys, event.PubKey) {
+			return fmt.Errorf("restricted: pubkey is not authorized to publish events")
+		}
 
 		if !spamDetector.AllowClient(c.UID()) {
 			return fmt.Errorf("rate limited")

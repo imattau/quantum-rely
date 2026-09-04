@@ -181,6 +181,25 @@ Key observations:
 
 ## Configuration
 
+Client publishing authentication is configured under `auth`:
+
+```yaml
+auth:
+  required: true
+  allowed_pubkeys:
+    - npub1...
+```
+
+`required: true` permits any client that successfully completes NIP-42
+authentication. Adding `allowed_pubkeys` enables a publishing allowlist and
+automatically requires NIP-42. An allowlisted event must be signed by the
+same pubkey that authenticated the client. Both `npub1...` and 64-character
+hex pubkeys are accepted; values are normalized to hex during config load.
+
+The authorization check is deliberately a separate layer from NIP-42
+authentication. Future paid access can add payment-backed entitlements to
+this layer without changing the relay protocol or event validation path.
+
 ```yaml
 relay:
   listen: ":8080"
