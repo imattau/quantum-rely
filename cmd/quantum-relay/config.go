@@ -9,14 +9,15 @@ import (
 )
 
 type Config struct {
-	Relay   RelayConfig   `yaml:"relay"`
-	Peer    PeerConfig    `yaml:"peer"`
-	Quantum QuantumConfig `yaml:"quantum"`
-	Spam    SpamConfig    `yaml:"spam"`
-	Storage StorageConfig `yaml:"storage"`
-	Peers   []string      `yaml:"peers"`
-	Trust   TrustConfig   `yaml:"trust"`
-	Auth    AuthConfig    `yaml:"auth"`
+	Relay     RelayConfig     `yaml:"relay"`
+	Peer      PeerConfig      `yaml:"peer"`
+	Quantum   QuantumConfig   `yaml:"quantum"`
+	Spam      SpamConfig      `yaml:"spam"`
+	Storage   StorageConfig   `yaml:"storage"`
+	Peers     []string        `yaml:"peers"`
+	Trust     TrustConfig     `yaml:"trust"`
+	Auth      AuthConfig      `yaml:"auth"`
+	Dashboard DashboardConfig `yaml:"dashboard"`
 }
 
 type RelayConfig struct {
@@ -67,6 +68,13 @@ type AuthConfig struct {
 	AllowedPubkeys []string `yaml:"allowed_pubkeys"`
 }
 
+type DashboardConfig struct {
+	Enabled        bool     `yaml:"enabled"`
+	AdminPubkeys   []string `yaml:"admin_pubkeys"`
+	PollIntervalMs int      `yaml:"poll_interval_ms"`
+	HistorySeconds int      `yaml:"history_seconds"`
+}
+
 func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -80,6 +88,9 @@ func LoadConfig(path string) (*Config, error) {
 	if err := normalizeAllowedPubkeys(&cfg.Auth); err != nil {
 		return nil, err
 	}
+	if err := normalizeDashboard(&cfg.Dashboard); err != nil {
+		return nil, err
+	}
 	return cfg, nil
 }
 
@@ -88,6 +99,7 @@ func parseConfig(content string, cfg *Config) error {
 	inPeers := false
 	inTrustPeers := false
 	inAllowedPubkeys := false
+	inAdminPubkeys := false
 
 	lines := strings.Split(content, "\n")
 	for _, raw := range lines {
@@ -104,12 +116,17 @@ func parseConfig(content string, cfg *Config) error {
 			inAllowedPubkeys = true
 			continue
 		}
+		if section == "dashboard" && line == "admin_pubkeys:" {
+			inAdminPubkeys = true
+			continue
+		}
 
 		if strings.HasSuffix(line, ":") && !strings.Contains(line, " ") {
 			section = strings.TrimSuffix(line, ":")
 			inPeers = section == "peers"
 			inTrustPeers = false
 			inAllowedPubkeys = false
+			inAdminPubkeys = false
 			continue
 		}
 
@@ -137,6 +154,14 @@ func parseConfig(content string, cfg *Config) error {
 			if strings.HasPrefix(line, "-") {
 				item := strings.TrimSpace(strings.TrimPrefix(line, "-"))
 				cfg.Auth.AllowedPubkeys = append(cfg.Auth.AllowedPubkeys, trimQuotes(item))
+				continue
+			}
+		}
+
+		if section == "dashboard" && inAdminPubkeys {
+			if strings.HasPrefix(line, "-") {
+				item := strings.TrimSpace(strings.TrimPrefix(line, "-"))
+				cfg.Dashboard.AdminPubkeys = append(cfg.Dashboard.AdminPubkeys, trimQuotes(item))
 				continue
 			}
 		}
@@ -240,9 +265,56 @@ func parseConfig(content string, cfg *Config) error {
 			case "required":
 				cfg.Auth.Required = value == "true"
 			}
+		case "dashboard":
+			switch key {
+			case "enabled":
+				cfg.Dashboard.Enabled = value == "true"
+			case "poll_interval_ms":
+				v, err := strconv.Atoi(value)
+				if err != nil {
+					return fmt.Errorf("invalid dashboard.poll_interval_ms: %w", err)
+				}
+				cfg.Dashboard.PollIntervalMs = v
+			case "history_seconds":
+				v, err := strconv.Atoi(value)
+				if err != nil {
+					return fmt.Errorf("invalid dashboard.history_seconds: %w", err)
+				}
+				cfg.Dashboard.HistorySeconds = v
+			}
 		}
 	}
 
+	return nil
+}
+
+func normalizeDashboard(cfg *DashboardConfig) error {
+	seen := make(map[string]struct{}, len(cfg.AdminPubkeys))
+	keys := make([]string, 0, len(cfg.AdminPubkeys))
+	for _, raw := range cfg.AdminPubkeys {
+		key, err := normalizePubkey(raw)
+		if err != nil {
+			return fmt.Errorf("invalid dashboard.admin_pubkeys entry %q: %w", raw, err)
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		keys = append(keys, key)
+	}
+	cfg.AdminPubkeys = keys
+	if cfg.PollIntervalMs < 1000 {
+		cfg.PollIntervalMs = 3000
+	}
+	if cfg.HistorySeconds < 0 {
+		return fmt.Errorf("dashboard.history_seconds must not be negative")
+	}
+	if cfg.HistorySeconds == 0 {
+		cfg.HistorySeconds = 300
+	}
+	if cfg.Enabled && len(cfg.AdminPubkeys) == 0 {
+		return fmt.Errorf("dashboard.enabled requires at least one dashboard.admin_pubkeys entry")
+	}
 	return nil
 }
 

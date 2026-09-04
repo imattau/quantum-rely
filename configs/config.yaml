@@ -28,6 +28,12 @@ auth:
   # may be npub1... strings or 64-character hex pubkeys.
   allowed_pubkeys: []
 
+dashboard:
+  enabled: false
+  admin_pubkeys: []
+  poll_interval_ms: 3000
+  history_seconds: 300
+
 peers:
   - "ws://relay1.example.com:8081"
   - "ws://relay2.example.com:8081"

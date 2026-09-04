@@ -10,6 +10,13 @@ type State struct {
 	Rep   map[string]float64 `json:"rep"`
 }
 
+// Metrics is a compact read-only summary for monitoring surfaces.
+type Metrics struct {
+	Round       int64 `json:"round"`
+	Reputations int   `json:"reputations"`
+	Dirty       int   `json:"dirty"`
+}
+
 type incomingMsg struct {
 	state  *State
 	weight float64
@@ -146,6 +153,13 @@ func (d *Diffuser) GetRound() int64 {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	return d.round
+}
+
+// Metrics returns consensus state without exposing the reputation map.
+func (d *Diffuser) Metrics() Metrics {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return Metrics{Round: d.round, Reputations: len(d.rep), Dirty: len(d.dirty)}
 }
 
 func (d *Diffuser) SetRound(r int64) {

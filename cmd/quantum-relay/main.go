@@ -71,6 +71,10 @@ func defaultConfig() *Config {
 			Enabled: false,
 			Weight:  2.0,
 		},
+		Dashboard: DashboardConfig{
+			PollIntervalMs: 3000,
+			HistorySeconds: 300,
+		},
 	}
 }
 
@@ -196,6 +200,16 @@ func main() {
 		return store.Query(filters), nil
 	}
 
+	var dashboardHandler http.Handler
+	if cfg.Dashboard.Enabled {
+		dashboard, err := newDashboardHandler(cfg.Dashboard, relayURL, peerMgr, graph, diffuser)
+		if err != nil {
+			log.Printf("dashboard configuration failed: %v", err)
+			os.Exit(1)
+		}
+		dashboardHandler = dashboard
+	}
+
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
@@ -225,7 +239,7 @@ func main() {
 		}
 		peerErr <- servePeerEndpoint(ctx, peerServer, cfg.Peer.Listen)
 	}()
-	if err := r.StartAndServe(ctx, cfg.Relay.Listen); err != nil {
+	if err := serveRelayEndpoint(ctx, r, dashboardHandler, cfg.Relay.Listen); err != nil {
 		log.Printf("relay stopped: %v", err)
 		os.Exit(1)
 	}

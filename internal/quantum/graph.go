@@ -22,6 +22,12 @@ type GraphState struct {
 	recomputeTimer *time.Timer
 }
 
+// Snapshot is a race-safe view of the current relay graph.
+type Snapshot struct {
+	Relays []string `json:"relays"`
+	Edges  [][2]int `json:"edges"`
+}
+
 func NewGraphState() *GraphState {
 	return &GraphState{
 		idx:       make(map[string]int),
@@ -223,6 +229,22 @@ func (g *GraphState) N() int {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return g.n
+}
+
+// Snapshot returns relay names and undirected edges using stable relay indexes.
+func (g *GraphState) Snapshot() Snapshot {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	out := Snapshot{Relays: append([]string(nil), g.relays...)}
+	for from, neighbors := range g.neighbors {
+		for to := range neighbors {
+			if from < to {
+				out.Edges = append(out.Edges, [2]int{from, to})
+			}
+		}
+	}
+	return out
 }
 
 func jacobiEigenSym(a [][]float64) ([]float64, [][]float64) {

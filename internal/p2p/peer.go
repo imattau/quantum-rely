@@ -32,6 +32,16 @@ type PeerManager struct {
 	onMessage    func(peerURL, msgType string, payload json.RawMessage)
 }
 
+// PeerSnapshot is a race-safe, read-only view of a peer connection.
+type PeerSnapshot struct {
+	URL       string  `json:"url"`
+	Connected bool    `json:"connected"`
+	Reconnect bool    `json:"reconnect"`
+	Queue     int     `json:"queue"`
+	Capacity  int     `json:"capacity"`
+	Trust     float64 `json:"trust"`
+}
+
 func NewPeerManager(onMessage func(peerURL, msgType string, payload json.RawMessage)) *PeerManager {
 	return &PeerManager{
 		peers:        make(map[string]*peer),
@@ -206,6 +216,25 @@ func (pm *PeerManager) Peers() []string {
 	out := make([]string, 0, len(pm.peers))
 	for u := range pm.peers {
 		out = append(out, u)
+	}
+	return out
+}
+
+// Snapshot returns the current peer state without exposing mutable internals.
+func (pm *PeerManager) Snapshot() []PeerSnapshot {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+
+	out := make([]PeerSnapshot, 0, len(pm.peers))
+	for url, p := range pm.peers {
+		p.connMu.RLock()
+		reconnect := p.reconnect
+		connected := p.conn != nil
+		p.connMu.RUnlock()
+		out = append(out, PeerSnapshot{
+			URL: url, Connected: connected, Reconnect: reconnect,
+			Queue: len(p.send), Capacity: cap(p.send), Trust: pm.trustWeights[url],
+		})
 	}
 	return out
 }

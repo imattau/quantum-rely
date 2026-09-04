@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quantum Relay Mesh</title>
+  <link rel="stylesheet" href="/mesh/app.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero"><div><p class="eyebrow">QUANTUM RELAY</p><h1>Mesh observatory</h1><p class="muted">Live topology and relay health</p></div><div id="auth" class="auth"></div></header>
+    <section id="login" class="card login"><h2>Administrator access required</h2><p>Authenticate with the Nostr key held by your browser extension to inspect this relay mesh.</p><button id="login-button">Authenticate with NIP-07</button><p id="login-error" class="error"></p></section>
+    <section id="dashboard" hidden>
+      <div id="health" class="health card"></div>
+      <div class="metrics" id="metrics"></div>
+      <div class="grid"><section class="card"><div class="section-title"><h2>Topology</h2><span id="updated" class="muted"></span></div><div id="graph" class="graph"></div></section><section class="card"><div class="section-title"><h2>Consensus</h2></div><div id="consensus"></div></section></div>
+      <section class="card"><div class="section-title"><h2>Peers</h2><span id="polling" class="muted"></span></div><div class="table-wrap"><table><thead><tr><th>Peer</th><th>Status</th><th>Trust</th><th>Queue</th><th>Reconnect</th></tr></thead><tbody id="peers"></tbody></table></div></section>
+      <p id="status-error" class="error"></p>
+    </section>
+  </main>
+  <script src="/mesh/app.js" defer></script>
+</body>
+</html>

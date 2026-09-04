@@ -147,6 +147,40 @@ func TestConfigAllowedPubkeysRejectsInvalidKey(t *testing.T) {
 	}
 }
 
+func TestConfigDashboard(t *testing.T) {
+	input := `
+relay:
+  public_url: "wss://relay.example.com/"
+dashboard:
+  enabled: true
+  admin_pubkeys:
+    - "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  poll_interval_ms: 5000
+  history_seconds: 600
+`
+	cfg := defaultConfig()
+	if err := parseConfig(input, cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := normalizeDashboard(&cfg.Dashboard); err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Dashboard.Enabled || len(cfg.Dashboard.AdminPubkeys) != 1 {
+		t.Fatalf("unexpected dashboard config: %+v", cfg.Dashboard)
+	}
+	if cfg.Dashboard.PollIntervalMs != 5000 || cfg.Dashboard.HistorySeconds != 600 {
+		t.Fatalf("unexpected dashboard intervals: %+v", cfg.Dashboard)
+	}
+}
+
+func TestConfigDashboardRequiresAdmin(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Dashboard.Enabled = true
+	if err := normalizeDashboard(&cfg.Dashboard); err == nil {
+		t.Fatal("expected enabled dashboard without admins to be rejected")
+	}
+}
+
 func TestConfigAuthRequiredDefault(t *testing.T) {
 	cfg := defaultConfig()
 	if cfg.Auth.Required {

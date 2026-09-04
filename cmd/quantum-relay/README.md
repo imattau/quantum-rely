@@ -200,6 +200,19 @@ The authorization check is deliberately a separate layer from NIP-42
 authentication. Future paid access can add payment-backed entitlements to
 this layer without changing the relay protocol or event validation path.
 
+The optional mesh dashboard is enabled with administrator npubs:
+
+```yaml
+dashboard:
+  enabled: true
+  admin_pubkeys:
+    - npub1...
+```
+
+Open `/mesh` in a browser with a NIP-07 extension. The page polls a protected
+status endpoint and shows peer connectivity, topology, queues, trust weights,
+and consensus health.
+
 ```yaml
 relay:
   listen: ":8080"
